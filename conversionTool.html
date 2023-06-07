@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Populate PO messages from JSON</title>
+    <script>
+      function performMerge() {
+        // Get the input from the first textarea (PO file content)
+        var poContent = document.getElementById("poContent").value;
+
+        // Get the input from the second textarea (JSON content)
+        var jsonContent = document.getElementById("jsonContent").value;
+
+        // Parse the JSON content
+        var json = JSON.parse(jsonContent);
+
+        // Split the PO content by lines
+        var poLines = poContent.split("\n");
+
+        const poKeys = [];
+        const duplicatedPoKeys = [];
+
+        let currentId = "";
+        // Iterate through the PO lines
+        for (var i = 0; i < poLines.length; i++) {
+          var line = poLines[i].trim();
+
+          if (line.startsWith("msgid")) {
+            currentId = line.substring(7, line.length - 1).trim();
+            if (currentId) {
+              if (poKeys.includes(currentId)) {
+                duplicatedPoKeys.push(currentId);
+              } else {
+                poKeys.push(currentId);
+              }
+            }
+          }
+
+          if (
+            line.startsWith("msgstr") &&
+            currentId !== "" &&
+            json.hasOwnProperty(currentId)
+          ) {
+            poLines[i] = `msgstr "${json[currentId]}"`;
+          }
+        }
+
+        // Generate the merged result
+        var mergedResult = poLines.join("\n");
+
+        // Set the merged result in the output textarea
+        document.getElementById("output").value = mergedResult;
+
+        //find unused keys from json
+        const jsonKeys = Object.keys(json);
+        const missingJsonKeys = jsonKeys.filter((key) => !poKeys.includes(key));
+
+        const extraPoKeys = poKeys.filter((key) => !jsonKeys.includes(key));
+
+        console.log({
+          missingJsonKeys,
+          extraPoKeys,
+          countJson: jsonKeys.length,
+          countPO: poKeys.length,
+          duplicatedPoKeys,
+        });
+      }
+    </script>
+  </head>
+  <body>
+    <textarea
+      id="poContent"
+      rows="10"
+      cols="50"
+      placeholder="Paste PO file content"
+    ></textarea>
+    <br />
+    <textarea
+      id="jsonContent"
+      rows="4"
+      cols="50"
+      placeholder="Paste JSON content"
+    ></textarea>
+    <br />
+    <button onclick="performMerge()">Merge</button>
+    <br />
+    <textarea
+      id="output"
+      rows="10"
+      cols="50"
+      placeholder="Merged Result"
+    ></textarea>
+  </body>
+</html>
